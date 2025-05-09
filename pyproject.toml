@@ -1,0 +1,16 @@
+[project]
+name = "spectrogram-generator"
+version = "0.1.0"
+package-mode = false
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi (>=0.115.12,<0.116.0)",
+    "uvicorn[standard] (>=0.34.2,<0.35.0)",
+    "python-multipart (>=0.0.20,<0.0.21)",
+    "python-magic (>=0.4.27,<0.5.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
