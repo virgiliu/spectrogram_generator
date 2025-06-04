@@ -1,6 +1,7 @@
 import io
 import mimetypes
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -10,13 +11,18 @@ from main import app
 client = TestClient(app)
 
 
-def test_valid_mp3_upload():
-    # Fake an mp3 header to pass mimetype detection
-
-    fake_mp3 = io.BytesIO(b"ID3" + b"\x00" * FILE_HEADER_READ_SIZE)
+@pytest.mark.parametrize(
+    "ext,header",
+    [
+        (".mp3", b"ID3"),
+        (".wav", b"RIFF\x00\x00\x00\x00WAVE"),
+    ],
+)
+def test_valid_audio_upload(ext, header):
+    fake_audio = io.BytesIO(header + b"\x00" * FILE_HEADER_READ_SIZE)
 
     response = client.post(
         "/upload/",
-        files={"audio_file": ("test.mp3", fake_mp3, mimetypes.types_map[".mp3"])},
+        files={"audio_file": (f"test{ext}", fake_audio, mimetypes.types_map[ext])},
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK, f"Response: {response.text}"
