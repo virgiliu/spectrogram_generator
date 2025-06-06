@@ -1,6 +1,7 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime, timezone
+from typing import Optional
+
+from sqlmodel import Field, SQLModel
 
 
 class Audio(SQLModel, table=True):
