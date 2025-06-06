@@ -1,9 +1,13 @@
+from contextlib import asynccontextmanager
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated
 
 import librosa
 import matplotlib
+
+from db import get_session
+from repositories.audio import AudioRepository
 
 # Switch the matplotlib backend to non-GUI. Must be before importing pyplot!
 matplotlib.use("Agg")
@@ -16,8 +20,17 @@ from filetype.types.base import Type
 from scipy.signal import spectrogram
 
 from constants import FILE_HEADER_READ_SIZE
+import db
+from models import Audio
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    db.init()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
@@ -44,11 +57,29 @@ async def upload_audio(
         case _:
             raise HTTPException(status_code=400, detail="Unsupported audio file type")
 
+    audio_bytes = await audio_file.read()
+    img_path = await generate_spectrogram(audio_bytes, audio_file.filename)
+
+    with db.get_session() as session:
+        repo = AudioRepository(session)
+        uploaded_file = repo.create(
+            Audio(filename=audio_file.filename, content_type=mimetype, data=audio_bytes)
+        )
+
+    return {
+        "filename": audio_file.filename,
+        "mimetype": mimetype,
+        "spectrogram_path": str(img_path),
+        "upload_id": uploaded_file.id,
+    }
+
+
+async def generate_spectrogram(audio_bytes: bytes, filename: str) -> Path:
     try:
-        file_bytes = await audio_file.read()
         # Load audio data without resampling nor converting to mono
-        audio_data, sample_rate = librosa.load(BytesIO(file_bytes), sr=None, mono=False)
-        del file_bytes
+        audio_data, sample_rate = librosa.load(
+            BytesIO(audio_bytes), sr=None, mono=False
+        )
 
         # If mono, reshape the audio data to (1, n) for consistency, helps keep
         # the plotting code cleaner later on
@@ -60,11 +91,12 @@ async def upload_audio(
 
     output_dir = Path.cwd() / "output"
     output_dir.mkdir(exist_ok=True)
-    img_path = output_dir / f"{Path(audio_file.filename).stem}_spectrogram.png"
 
+    img_path = output_dir / f"{Path(filename).stem}_spectrogram.png"
     fig, axes = plt.subplots(
         audio_data.shape[0], 1, figsize=(10, 4 * audio_data.shape[0])
     )
+
     if audio_data.shape[0] == 1:
         axes = [axes]
 
@@ -74,14 +106,10 @@ async def upload_audio(
         ax.pcolormesh(t, f, 10 * np.log10(Sxx + 1e-10), shading="gouraud")
         ax.set_ylabel("Frequency [Hz]")
         ax.set_xlabel("Time [s]")
-        ax.set_title(f"Channel {ch+1}")
+        ax.set_title(f"Channel {ch + 1}")
 
     fig.tight_layout()
     fig.savefig(img_path)
     plt.close(fig)
 
-    return {
-        "filename": audio_file.filename,
-        "mimetype": mimetype,
-        "spectrogram_path": str(img_path),
-    }
+    return img_path
