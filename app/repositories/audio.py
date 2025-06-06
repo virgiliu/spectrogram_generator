@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from sqlmodel import Session
-from models import Audio
+from app.models.audio import Audio
 
 
 @dataclass

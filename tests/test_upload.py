@@ -5,8 +5,8 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from constants import FILE_HEADER_READ_SIZE
-from main import app
+from app.constants import FILE_HEADER_READ_SIZE
+from app.main import app
 
 client = TestClient(app)
 

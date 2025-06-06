@@ -6,8 +6,7 @@ from typing import Annotated
 import librosa
 import matplotlib
 
-from db import get_session
-from repositories.audio import AudioRepository
+from app.repositories.audio import AudioRepository
 
 # Switch the matplotlib backend to non-GUI. Must be before importing pyplot!
 matplotlib.use("Agg")
@@ -19,9 +18,9 @@ from filetype.types.audio import Mp3, Wav
 from filetype.types.base import Type
 from scipy.signal import spectrogram
 
-from constants import FILE_HEADER_READ_SIZE
-import db
-from models import Audio
+from app.constants import FILE_HEADER_READ_SIZE
+import app.db as db
+from app.models.audio import Audio
 
 
 @asynccontextmanager
