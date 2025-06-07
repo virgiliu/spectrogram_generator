@@ -6,8 +6,8 @@ from starlette import status
 
 import app.db as db
 from app.celery_app import celery_app
-from app.constants import FILE_HEADER_READ_SIZE
 from app.events import AUDIO_UPLOADED
+from app.exceptions import InvalidAudioFile
 from app.services.audio_upload import AudioUploadService
 
 
@@ -33,8 +33,8 @@ async def upload_audio(
     try:
         service = AudioUploadService()
         uploaded_file = await service.handle_upload(audio_file)
-    except HTTPException as e:
-        raise e
+    except InvalidAudioFile as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
