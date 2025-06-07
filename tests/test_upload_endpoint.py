@@ -1,10 +1,12 @@
 import mimetypes
 from io import BytesIO
+from typing import Generator, Optional, Protocol
 from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from httpx import Response
 
 from app.events import AUDIO_UPLOADED
 from app.exceptions import InvalidAudioFile
@@ -12,22 +14,29 @@ from app.main import app
 
 client = TestClient(app)
 
+UploadFileDict = dict[str, tuple[str, BytesIO, str]]
+
+
+class UploadFakeMP3(Protocol):
+    def __call__(self, files: Optional[UploadFileDict] = ...) -> Response:
+        pass
+
 
 @pytest.fixture
-def mock_send_task():
+def mock_send_task() -> Generator[Mock, None, None]:
     with patch("app.main.celery_app.send_task") as mock_send:
         yield mock_send
 
 
 @pytest.fixture
-def mock_upload_service():
+def mock_upload_service() -> Generator[Mock, None, None]:
     with patch("app.main.AudioUploadService.handle_upload") as mock_upload:
         yield mock_upload
 
 
 @pytest.fixture
-def upload_fake_mp3():
-    def upload(files=None):
+def upload_fake_mp3() -> UploadFakeMP3:
+    def upload(files: Optional[UploadFileDict] = None) -> Response:
         if files is None:
             files = {
                 "audio_file": (
@@ -41,7 +50,11 @@ def upload_fake_mp3():
     return upload
 
 
-def test_valid_audio_upload(mock_send_task, mock_upload_service, upload_fake_mp3):
+def test_valid_audio_upload(
+    mock_send_task: Mock,
+    mock_upload_service: Mock,
+    upload_fake_mp3: UploadFakeMP3,
+):
     test_audio_id = 1337
     id_key = "audio_id"
     mock_upload_service.return_value = Mock(id=test_audio_id)
@@ -55,14 +68,20 @@ def test_valid_audio_upload(mock_send_task, mock_upload_service, upload_fake_mp3
     )
 
 
-def test_invalid_audio_upload(mock_send_task, mock_upload_service, upload_fake_mp3):
+def test_invalid_audio_upload(
+    mock_send_task: Mock,
+    mock_upload_service: Mock,
+    upload_fake_mp3: UploadFakeMP3,
+):
     mock_upload_service.side_effect = InvalidAudioFile
     response = upload_fake_mp3()
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     mock_send_task.assert_not_called()
 
 
-def test_missing_audio_file_returns_422(mock_send_task, upload_fake_mp3):
+def test_missing_audio_file_returns_422(
+    mock_send_task: Mock, upload_fake_mp3: UploadFakeMP3
+):
     response = upload_fake_mp3(files={})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     mock_send_task.assert_not_called()

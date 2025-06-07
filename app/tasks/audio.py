@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
     retry_backoff=True,
     max_retries=5,
 )
-def handle_audio_uploaded(self, audio_id: int):
+def handle_audio_uploaded(self, audio_id: int) -> None:
     with get_session() as session:
         repo = AudioRepository(session)
         audio = repo.get_by_id(audio_id)

@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import Annotated
+from typing import Annotated, AsyncGenerator, cast
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from starlette import status
@@ -12,7 +12,7 @@ from app.services.audio_upload import AudioUploadService
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     db.init()
     yield
 
@@ -21,14 +21,14 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
-def health_check():
+def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.post("/upload")
 async def upload_audio(
     audio_file: Annotated[UploadFile, File(description="mp3 or wav file")],
-):
+) -> dict[str, int]:
 
     try:
         service = AudioUploadService()
@@ -43,5 +43,5 @@ async def upload_audio(
     celery_app.send_task(AUDIO_UPLOADED, args=[uploaded_file.id])
 
     return {
-        "audio_id": uploaded_file.id,
+        "audio_id": cast(int, uploaded_file.id),
     }

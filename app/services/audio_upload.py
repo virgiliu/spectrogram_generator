@@ -1,6 +1,10 @@
+from typing import Callable, Optional
+
 from fastapi import UploadFile
 from filetype import guess as guess_filetype
 from filetype.types.audio import Mp3, Wav
+from filetype.types.base import Type
+from sqlmodel import Session
 
 from app.constants import FILE_HEADER_READ_SIZE
 from app.db import get_session
@@ -10,7 +14,7 @@ from app.repositories.audio import AudioRepository
 
 
 class AudioUploadService:
-    def __init__(self, session_factory=get_session):
+    def __init__(self, session_factory: Callable[[], Session] = get_session):
         self._session_factory = session_factory
 
     async def handle_upload(self, audio_file: UploadFile) -> Audio:
@@ -19,7 +23,7 @@ class AudioUploadService:
         # No point reading possibly lots of MB if the header is wrong.
         header = await audio_file.read(FILE_HEADER_READ_SIZE)
 
-        guessed_type = guess_filetype(header)
+        guessed_type: Optional[Type] = guess_filetype(header)
 
         # noinspection PyUnreachableCode
         match guessed_type:

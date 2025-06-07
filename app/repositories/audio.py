@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from sqlmodel import Session, select
 
@@ -15,10 +16,10 @@ class AudioRepository:
         self.session.refresh(audio)
         return audio
 
-    def get_by_id(self, audio_id: int) -> Audio:
+    def get_by_id(self, audio_id: int) -> Optional[Audio]:
         return self.session.exec(select(Audio).where(Audio.id == audio_id)).first()
 
-    def mark_done(self, audio_id: int):
+    def mark_done(self, audio_id: int) -> None:
         audio = self.get_by_id(audio_id)
         if audio:
             audio.status = "done"
