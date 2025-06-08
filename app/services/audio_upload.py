@@ -6,11 +6,11 @@ from filetype.types.audio import Mp3, Wav
 from filetype.types.base import Type
 from sqlmodel import Session
 
-from app.constants import FILE_HEADER_READ_SIZE
 from app.db import get_session
 from app.exceptions import InvalidAudioFile
 from app.models.audio import Audio
 from app.repositories.audio import AudioRepository
+from app.services.constants import FILE_HEADER_READ_SIZE
 
 
 class AudioUploadService:
