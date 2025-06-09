@@ -31,7 +31,7 @@ def generate_spectrogram(audio_bytes: bytes, filename: str) -> Path:
     output_dir = Path.cwd() / "output"
     output_dir.mkdir(exist_ok=True)
 
-    img_path = output_dir / f"{Path(filename).stem}_spectrogram.png"
+    img_path = output_dir / f"{Path(filename)}_spectrogram.png"
     fig, axes = plt.subplots(
         audio_data.shape[0], 1, figsize=(10, 4 * audio_data.shape[0])
     )
