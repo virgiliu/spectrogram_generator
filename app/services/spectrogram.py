@@ -44,6 +44,8 @@ def generate_spectrogram(audio_bytes: bytes, filename: str) -> bytes:
             title=f"Channel {ch + 1}",
         )
 
+    fig.suptitle(filename, fontsize=16)
+
     buf = BytesIO()
     try:
         fig.tight_layout()
