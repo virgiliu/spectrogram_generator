@@ -1,5 +1,4 @@
 from io import BytesIO
-from pathlib import Path
 
 import librosa
 import matplotlib
@@ -13,7 +12,7 @@ import numpy as np
 from scipy.signal import spectrogram
 
 
-def generate_spectrogram(audio_bytes: bytes, filename: str) -> Path:
+def generate_spectrogram(audio_bytes: bytes, filename: str) -> bytes:
 
     try:
         # Load audio data without resampling nor converting to mono
@@ -28,10 +27,6 @@ def generate_spectrogram(audio_bytes: bytes, filename: str) -> Path:
     if audio_data.ndim == 1:
         audio_data = audio_data[np.newaxis, :]
 
-    output_dir = Path.cwd() / "output"
-    output_dir.mkdir(exist_ok=True)
-
-    img_path = output_dir / f"{Path(filename)}_spectrogram.png"
     fig, axes = plt.subplots(
         audio_data.shape[0], 1, figsize=(10, 4 * audio_data.shape[0])
     )
@@ -49,10 +44,12 @@ def generate_spectrogram(audio_bytes: bytes, filename: str) -> Path:
             title=f"Channel {ch + 1}",
         )
 
+    buf = BytesIO()
     try:
         fig.tight_layout()
-        fig.savefig(img_path)
+        fig.savefig(buf, format="png")
     finally:
         plt.close(fig)
 
-    return img_path
+    buf.seek(0)
+    return buf.read()

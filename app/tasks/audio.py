@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from app.celery_app import celery_app
 from app.db import get_session
@@ -24,7 +25,17 @@ def handle_audio_uploaded(self, audio_id: int) -> None:
             logger.warning(f"Audio with ID {audio_id} was not found")
             return
         logger.info(f"[WORKER] Handling audio ID {audio.id}, filename {audio.filename}")
-        generate_spectrogram(audio.data, audio.filename)
+
+        image_bytes = generate_spectrogram(audio.data, audio.filename)
+
+        output_dir = Path.cwd() / "output"
+        output_dir.mkdir(exist_ok=True)
+
+        img_path = output_dir / f"{Path(audio.filename)}_spectrogram.png"
+
+        with open(img_path, "wb") as f:
+            f.write(image_bytes)
+
         repo.mark_done(audio_id)
         logger.info(
             f"[WORKER] Finished handling audio ID {audio.id}, filename {audio.filename}"
