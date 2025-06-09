@@ -4,28 +4,29 @@ from pathlib import Path
 import librosa
 import matplotlib
 
+from app.exceptions import SpectrogramGenerationError
+
 # Switch the matplotlib backend to non-GUI. Must be before importing pyplot!
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from fastapi import HTTPException
 from scipy.signal import spectrogram
 
 
 def generate_spectrogram(audio_bytes: bytes, filename: str) -> Path:
+
     try:
         # Load audio data without resampling nor converting to mono
         audio_data, sample_rate = librosa.load(
             BytesIO(audio_bytes), sr=None, mono=False
         )
-
-        # If mono, reshape the audio data to (1, n) for consistency, helps keep
-        # the plotting code cleaner later on
-        if audio_data.ndim == 1:
-            audio_data = audio_data[np.newaxis, :]
-
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Failed to read audio data: {exc}")
+        raise SpectrogramGenerationError(f"Failed to read audio data: {exc}")
+
+    # If mono audio, reshape the audio data to (1, n) for consistency, helps keep
+    # the plotting code cleaner later on
+    if audio_data.ndim == 1:
+        audio_data = audio_data[np.newaxis, :]
 
     output_dir = Path.cwd() / "output"
     output_dir.mkdir(exist_ok=True)
@@ -42,12 +43,16 @@ def generate_spectrogram(audio_bytes: bytes, filename: str) -> Path:
         # noinspection PyPep8Naming
         f, t, Sxx = spectrogram(audio_data[ch], sample_rate)
         ax.pcolormesh(t, f, 10 * np.log10(Sxx + 1e-10), shading="gouraud")
-        ax.set_ylabel("Frequency [Hz]")
-        ax.set_xlabel("Time [s]")
-        ax.set_title(f"Channel {ch + 1}")
+        ax.set(
+            ylabel="Frequency [Hz]",
+            xlabel="Time [s]",
+            title=f"Channel {ch + 1}",
+        )
 
-    fig.tight_layout()
-    fig.savefig(img_path)
-    plt.close(fig)
+    try:
+        fig.tight_layout()
+        fig.savefig(img_path)
+    finally:
+        plt.close(fig)
 
     return img_path
