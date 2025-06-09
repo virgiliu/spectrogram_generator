@@ -74,6 +74,7 @@ async def test_accepts_supported_audio_formats(
         (".mp3", b"whatever"),
         (".jpg", b"\xff\xd8\xff\xe0\x00\x10\x4a\x46\x49\x46\x00\x01"),
         (".aac", b"\xff\xf1\x5c\x80\x2e\x7f\xfc\x21"),
+        (".empty", b""),
     ],
 )
 @pytest.mark.asyncio
