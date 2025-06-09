@@ -1,1 +1,2 @@
 AUDIO_STATUS_PENDING = "pending"
+AUDIO_STATUS_DONE = "done"

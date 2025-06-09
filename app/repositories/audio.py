@@ -4,6 +4,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models.audio import Audio
+from app.models.constants import AUDIO_STATUS_DONE
 
 
 @dataclass
@@ -22,6 +23,6 @@ class AudioRepository:
     def mark_done(self, audio_id: int) -> None:
         audio = self.get_by_id(audio_id)
         if audio:
-            audio.status = "done"
+            audio.status = AUDIO_STATUS_DONE
             self.session.add(audio)
             self.session.commit()
