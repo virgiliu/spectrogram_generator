@@ -1,5 +1,6 @@
 import mimetypes
 from io import BytesIO
+from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,22 +9,16 @@ from fastapi import UploadFile
 from app.exceptions import InvalidAudioFile
 from app.models.audio import Audio
 from app.models.constants import AUDIO_STATUS_PENDING
-from app.repositories.audio import AudioRepository
 from app.services.audio_upload import AudioUploadService
 from app.services.constants import FILE_HEADER_READ_SIZE
 
 
 @pytest.fixture
-def mock_repo() -> AudioRepository:
+def mock_repo() -> Generator[MagicMock, None, None]:
     repo = MagicMock()
     repo.create.side_effect = lambda audio_obj: audio_obj
-    return repo
-
-
-@pytest.fixture(autouse=True)
-def patch_audio_repository(mock_repo: MagicMock):
-    with patch("app.services.audio_upload.AudioRepository", return_value=mock_repo):
-        yield
+    with patch("app.services.audio_upload.AudioRepository", return_value=repo):
+        yield repo
 
 
 @pytest.fixture
