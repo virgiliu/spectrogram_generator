@@ -24,13 +24,13 @@ class UploadFakeMP3(Protocol):
 
 @pytest.fixture
 def mock_send_task() -> Generator[Mock, None, None]:
-    with patch("app.main.celery_app.send_task") as mock_send:
+    with patch("app.api.routes.celery_app.send_task") as mock_send:
         yield mock_send
 
 
 @pytest.fixture
 def mock_upload_service() -> Generator[Mock, None, None]:
-    with patch("app.main.AudioUploadService.handle_upload") as mock_upload:
+    with patch("app.api.routes.AudioUploadService.handle_upload") as mock_upload:
         yield mock_upload
 
 

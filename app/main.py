@@ -1,14 +1,10 @@
 from contextlib import asynccontextmanager
-from typing import Annotated, AsyncGenerator, cast
+from typing import AsyncGenerator
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from starlette import status
+from fastapi import FastAPI
 
 import app.db as db
-from app.celery_app import celery_app
-from app.events import AUDIO_UPLOADED
-from app.exceptions import InvalidAudioFile
-from app.services.audio_upload import AudioUploadService
+from app.api.routes import router as api_router
 
 
 @asynccontextmanager
@@ -19,29 +15,4 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(lifespan=lifespan)
 
-
-@app.get("/")
-def health_check() -> dict[str, str]:
-    return {"status": "ok"}
-
-
-@app.post("/upload")
-async def upload_audio(
-    audio_file: Annotated[UploadFile, File(description="mp3 or wav file")],
-) -> dict[str, int]:
-
-    try:
-        service = AudioUploadService()
-        uploaded_file = await service.handle_upload(audio_file)
-    except InvalidAudioFile as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        )
-
-    celery_app.send_task(AUDIO_UPLOADED, args=[uploaded_file.id])
-
-    return {
-        "audio_id": cast(int, uploaded_file.id),
-    }
+app.include_router(api_router)
