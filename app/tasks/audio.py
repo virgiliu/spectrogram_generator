@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from app.celery_app import celery_app
-from app.db import get_session
+from app.db import scoped_session
 from app.events import AUDIO_UPLOADED
 from app.repositories.audio import AudioRepository
 from app.services.spectrogram import generate_spectrogram
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
     max_retries=5,
 )
 def handle_audio_uploaded(self, audio_id: int) -> None:
-    with get_session() as session:
+    with scoped_session() as session:
         repo = AudioRepository(session)
         audio = repo.get_by_id(audio_id)
         if audio is None:

@@ -1,13 +1,14 @@
 import mimetypes
 from io import BytesIO
 from typing import Generator, Optional, Protocol
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 from httpx import Response
 
+from app.api.routes import get_audio_upload_service
 from app.events import AUDIO_UPLOADED
 from app.exceptions import InvalidAudioFile
 from app.main import app
@@ -23,15 +24,25 @@ class UploadFakeMP3(Protocol):
 
 
 @pytest.fixture
-def mock_send_task() -> Generator[Mock, None, None]:
-    with patch("app.api.routes.celery_app.send_task") as mock_send:
-        yield mock_send
+def mock_upload_service() -> Mock:
+    service = Mock()
+    service.handle_upload = AsyncMock()
+    return service
+
+
+@pytest.fixture(autouse=True)
+def override_audio_upload_service(
+    mock_upload_service: Mock,
+) -> Generator[None, None, None]:
+    app.dependency_overrides[get_audio_upload_service] = lambda: mock_upload_service
+    yield
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def mock_upload_service() -> Generator[Mock, None, None]:
-    with patch("app.api.routes.AudioUploadService.handle_upload") as mock_upload:
-        yield mock_upload
+def mock_send_task() -> Generator[Mock, None, None]:
+    with patch("app.api.routes.celery_app.send_task") as mock_send:
+        yield mock_send
 
 
 @pytest.fixture
@@ -57,7 +68,7 @@ def test_valid_audio_upload(
 ):
     test_audio_id = 1337
     id_key = "audio_id"
-    mock_upload_service.return_value = Mock(id=test_audio_id)
+    mock_upload_service.handle_upload.return_value = Mock(id=test_audio_id)
 
     response = upload_fake_mp3()
 
@@ -73,7 +84,7 @@ def test_invalid_audio_upload(
     mock_upload_service: Mock,
     upload_fake_mp3: UploadFakeMP3,
 ):
-    mock_upload_service.side_effect = InvalidAudioFile
+    mock_upload_service.handle_upload.side_effect = InvalidAudioFile
     response = upload_fake_mp3()
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     mock_send_task.assert_not_called()

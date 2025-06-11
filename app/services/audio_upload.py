@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Optional
 
 from fastapi import UploadFile
 from filetype import guess as guess_filetype
@@ -6,7 +6,6 @@ from filetype.types.audio import Mp3, Wav
 from filetype.types.base import Type
 from sqlmodel import Session
 
-from app.db import get_session
 from app.exceptions import InvalidAudioFile
 from app.models.audio import Audio
 from app.repositories.audio import AudioRepository
@@ -14,8 +13,8 @@ from app.services.constants import FILE_HEADER_READ_SIZE
 
 
 class AudioUploadService:
-    def __init__(self, session_factory: Callable[[], Session] = get_session):
-        self._session_factory = session_factory
+    def __init__(self, session: Session):
+        self.session = session
 
     async def handle_upload(self, audio_file: UploadFile) -> Audio:
         # Read just the start of the file so we can determine
@@ -37,12 +36,11 @@ class AudioUploadService:
 
         audio_bytes = await audio_file.read()
 
-        with self._session_factory() as session:
-            repo = AudioRepository(session)
-            return repo.create(
-                Audio(
-                    filename=audio_file.filename,
-                    content_type=mimetype,
-                    data=audio_bytes,
-                )
+        repo = AudioRepository(self.session)
+        return repo.create(
+            Audio(
+                filename=audio_file.filename,
+                content_type=mimetype,
+                data=audio_bytes,
             )
+        )
