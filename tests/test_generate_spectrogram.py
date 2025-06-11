@@ -88,7 +88,7 @@ def test_generate_spectrogram_matches_expected(input_filename: str):
         b"\xff\xfb\xff\xf3\xff\xf2",
         None,
         -3,
-        "eeeeeh macarena",
+        "Zeit, bitte bleib stehen, bleib stehen",
         {},
         object(),
     ],

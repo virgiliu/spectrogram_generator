@@ -41,7 +41,7 @@ def upload_fake_mp3() -> UploadFakeMP3:
             files = {
                 "audio_file": (
                     "test.mp3",
-                    BytesIO(b"eeeehMACARENA"),
+                    BytesIO(b"Im Namen des Herren, zeig dich!"),
                     mimetypes.types_map[".mp3"],
                 )
             }
