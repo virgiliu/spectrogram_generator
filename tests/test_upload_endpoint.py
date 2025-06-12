@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from app.api.routes import get_audio_upload_service
+from app.api.schemas import UploadResponse
 from app.events import AUDIO_UPLOADED
 from app.exceptions import InvalidAudioFile
 from app.main import app
@@ -67,15 +68,14 @@ def test_valid_audio_upload(
     upload_fake_mp3: UploadFakeMP3,
 ):
     test_audio_id = 1337
-    id_key = "audio_id"
     mock_upload_service.handle_upload.return_value = Mock(id=test_audio_id)
 
     response = upload_fake_mp3()
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {id_key: test_audio_id}
+    assert response.json() == UploadResponse(audio_id=test_audio_id).model_dump()
     mock_send_task.assert_called_once_with(
-        AUDIO_UPLOADED, args=[response.json()[id_key]]
+        AUDIO_UPLOADED, args=[UploadResponse(**response.json()).audio_id]
     )
 
 
