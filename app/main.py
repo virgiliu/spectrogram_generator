@@ -12,6 +12,7 @@ from app.config import get_settings
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     db.init(get_settings())
     yield
+    db.destroy_engine()
 
 
 app = FastAPI(lifespan=lifespan)
