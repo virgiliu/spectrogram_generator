@@ -32,7 +32,7 @@ class AudioUploadService:
                 raise InvalidAudioFile("Unsupported audio file type")
 
         # File passed validation so move the cursor to the start
-        audio_file.file.seek(0)
+        await audio_file.seek(0)
 
         audio_bytes = await audio_file.read()
 
