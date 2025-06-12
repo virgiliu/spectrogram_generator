@@ -43,3 +43,4 @@ poetry run pytest
 * CI/CD: GitHub Actions + Docker‑based integration tests
 * Add endpoint that allows tracking of background task status
 * Return images as base64 instead of saving to disk
+* Graceful handling of corrupt audio files
