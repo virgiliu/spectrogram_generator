@@ -24,15 +24,10 @@ def init(settings: Settings) -> Engine:
     """Initialise and return the global database engine."""
 
     global _engine
-    if _engine is not None:
+    if _engine is None:
         with _engine_lock:
-            if (
-                _engine is None
-            ):  # re-check engine just in case another thread called init in the meantime
+            if _engine is None:  # re-check in case another thread set it
                 _engine = _create_engine(settings)
-        return _engine
-
-    _engine = _create_engine(settings)
 
     return _engine
 
