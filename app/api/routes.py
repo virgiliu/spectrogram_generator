@@ -1,7 +1,7 @@
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
 
 from app.api.schemas import HealthCheckResponse, UploadResponse
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 def get_audio_upload_service(
-    session: Session = Depends(session_generator),
+    session: AsyncSession = Depends(session_generator),
 ) -> AudioUploadService:
     return AudioUploadService(session)
 

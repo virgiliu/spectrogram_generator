@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "sqlite:///db.sqlite3"
+    database_url: str = "sqlite+aiosqlite:///db.sqlite3"
     celery_broker_url: str = "redis://localhost:6379/0"
 
 

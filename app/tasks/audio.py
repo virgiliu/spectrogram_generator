@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -18,11 +19,15 @@ logger = logging.getLogger(__name__)
     max_retries=5,
 )
 def handle_audio_uploaded(self, audio_id: int) -> None:
-    with scoped_session() as session:
+    asyncio.run(_handle_audio_uploaded_async(audio_id))
+
+
+async def _handle_audio_uploaded_async(audio_id: int) -> None:
+    async with scoped_session() as session:
         repo = AudioRepository(session)
-        audio = repo.get_by_id(audio_id)
+        audio = await repo.get_by_id(audio_id)
         if audio is None:
-            logger.warning(f"Audio with ID {audio_id} was not found")
+            logger.warning(f"[WORKER] Audio with ID {audio_id} was not found")
             return
         logger.info(f"[WORKER] Handling audio ID {audio.id}, filename {audio.filename}")
 
@@ -36,7 +41,7 @@ def handle_audio_uploaded(self, audio_id: int) -> None:
         with open(img_path, "wb") as f:
             f.write(image_bytes)
 
-        repo.mark_done(audio_id)
+        await repo.mark_done(audio_id)
         logger.info(
             f"[WORKER] Finished handling audio ID {audio.id}, filename {audio.filename}"
         )

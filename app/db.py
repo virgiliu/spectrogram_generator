@@ -1,38 +1,40 @@
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from threading import Lock
-from typing import Generator, Optional
+from typing import AsyncGenerator, AsyncIterator, Optional
 
-from sqlalchemy import Engine
-from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import Settings
 
 _engine_lock = Lock()
-_engine: Optional[Engine] = None
+_engine: Optional[AsyncEngine] = None
 
 
-def _create_engine(settings: Settings) -> Engine:
+async def _create_engine(settings: Settings) -> AsyncEngine:
     if settings is None:
         raise ValueError("Settings cannot be None")
 
-    engine = create_engine(settings.database_url, echo=False)
-    SQLModel.metadata.create_all(engine)
+    engine = create_async_engine(settings.database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
     return engine
 
 
-def init(settings: Settings) -> Engine:
+async def init(settings: Settings) -> AsyncEngine:
     """Initialise and return the global database engine."""
 
     global _engine
     if _engine is None:
         with _engine_lock:
-            if _engine is None:  # re-check in case another thread set it
-                _engine = _create_engine(settings)
+            if _engine is None:  # re-check, in case another thread set it already
+                _engine = await _create_engine(settings)
 
     return _engine
 
 
-def get_engine() -> Engine:
+def get_engine() -> AsyncEngine:
     if _engine is None:
         raise RuntimeError(
             "Database engine has not been initialised; call init() first"
@@ -40,25 +42,25 @@ def get_engine() -> Engine:
     return _engine
 
 
-def destroy_engine() -> None:
+async def destroy_engine() -> None:
     global _engine
     if _engine is not None:
-        _engine.dispose()
+        await _engine.dispose()
         _engine = None
 
 
-def session_generator() -> Generator[Session, None, None]:
+async def session_generator() -> AsyncGenerator[AsyncSession, None]:
     """This generator is intended for use with ``Depends`` in API routes. Yields a session for FastAPI dependencies."""
-    with Session(get_engine()) as session:
+    async with AsyncSession(get_engine()) as session:
         yield session
 
 
-@contextmanager
-def scoped_session() -> Generator[Session, None, None]:
+@asynccontextmanager
+async def scoped_session() -> AsyncIterator[AsyncSession]:
     """Context manager that provides a session for background tasks.
 
     Use ``scoped_session`` over ``session_generator`` when you need an explicit ``with`` block (e.g.: in Celery tasks).
     """
 
-    with Session(get_engine()) as session:
+    async with AsyncSession(get_engine()) as session:
         yield session

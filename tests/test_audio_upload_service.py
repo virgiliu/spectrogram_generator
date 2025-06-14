@@ -1,7 +1,7 @@
 import mimetypes
 from io import BytesIO
 from typing import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import UploadFile
@@ -16,7 +16,7 @@ from app.services.constants import FILE_HEADER_READ_SIZE
 @pytest.fixture
 def mock_repo() -> Generator[MagicMock, None, None]:
     repo = MagicMock()
-    repo.create.side_effect = lambda audio_obj: audio_obj
+    repo.create = AsyncMock(side_effect=lambda audio_obj: audio_obj)
     with patch("app.services.audio_upload.AudioRepository", return_value=repo):
         yield repo
 
@@ -60,7 +60,7 @@ async def test_accepts_supported_audio_formats(
     assert audio.filename == f"test{ext}"
     assert audio.content_type == mimetypes.types_map[ext]
     assert audio.status == AUDIO_STATUS_PENDING
-    mock_repo.create.assert_called_once_with(audio)
+    mock_repo.create.assert_awaited_once_with(audio)
 
 
 @pytest.mark.parametrize(

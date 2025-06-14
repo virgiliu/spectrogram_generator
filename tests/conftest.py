@@ -1,20 +1,33 @@
+import asyncio
+
 import pytest
+import pytest_asyncio
 
 from app import db
 from app.config import Settings, get_settings
+from app.db import scoped_session
 from app.main import app
 
 
 @pytest.fixture(autouse=True, scope="function")
 def setup_in_memory_db():
-    test_settings = Settings(database_url="sqlite:///:memory:")
+    test_settings = Settings(database_url="sqlite+aiosqlite:///:memory:")
 
     app.dependency_overrides[get_settings] = lambda: test_settings
 
-    db.destroy_engine()
-    db.init(test_settings)
+    # Use asyncio.run() instead of making the fixture async and awaiting because
+    # several tests are synchronous and then they would have to be executed in an event loop.
+    # This way, nothing forces sync tests to be wrapped in `pytest.mark.asyncio`.
+    asyncio.run(db.destroy_engine())
+    asyncio.run(db.init(test_settings))
 
     yield
 
     app.dependency_overrides.clear()
-    db.destroy_engine()
+    asyncio.run(db.destroy_engine())
+
+
+@pytest_asyncio.fixture
+async def session():
+    async with scoped_session() as session:
+        yield session

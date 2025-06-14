@@ -10,9 +10,9 @@ from app.config import get_settings
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
-    db.init(get_settings())
+    await db.init(get_settings())
     yield
-    db.destroy_engine()
+    await db.destroy_engine()
 
 
 app = FastAPI(lifespan=lifespan)
