@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 
 @celery_app.task(
     name=AUDIO_UPLOADED,
-    bind=True,
     autoretry_for=(Exception,),
     retry_backoff=True,
     max_retries=5,
 )
-def handle_audio_uploaded(self, audio_id: int) -> None:
+def handle_audio_uploaded(audio_id: int) -> None:
     asyncio.run(_handle_audio_uploaded_async(audio_id))
 
 
