@@ -1,6 +1,6 @@
 import mimetypes
 from io import BytesIO
-from typing import Generator
+from typing import Generator, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -86,3 +86,33 @@ async def test_rejects_unsupported_audio_formats(
         await service.handle_upload(upload_file)
 
     mock_repo.create.assert_not_called()
+
+
+@pytest.mark.parametrize("filename", [None, ""])
+@pytest.mark.asyncio
+async def test_rejects_audio_without_filename(
+    filename: Optional[str], service: AudioUploadService, mock_repo: MagicMock
+):
+    upload_file = UploadFile(filename=filename, file=BytesIO(b""))
+
+    with pytest.raises(InvalidAudioFile) as exc_info:
+        await service.handle_upload(upload_file)
+
+    assert "must have a filename" in str(exc_info.value)
+    mock_repo.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_filenames_are_sanitized(
+    service: AudioUploadService, mock_repo: MagicMock
+):
+    fake_audio_bytes = make_fake_audio_bytes(b"ID3")
+    audio_filename = "h4x0rz.mp3"
+    upload_file = UploadFile(
+        filename=f"../path/to/{audio_filename}", file=BytesIO(fake_audio_bytes)
+    )
+
+    audio: Audio = await service.handle_upload(upload_file)
+
+    assert audio.filename == audio_filename
+    mock_repo.create.assert_awaited_once_with(audio)

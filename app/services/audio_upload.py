@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 from fastapi import UploadFile
@@ -17,6 +18,9 @@ class AudioUploadService:
         self.session = session
 
     async def handle_upload(self, audio_file: UploadFile) -> Audio:
+        if not audio_file.filename:
+            raise InvalidAudioFile("Uploaded file must have a filename")
+
         # Read just the start of the file so we can determine
         # if it's an expected audio type before reading the entire thing.
         # No point reading possibly lots of MB if the header is wrong.
@@ -36,10 +40,13 @@ class AudioUploadService:
 
         audio_bytes = await audio_file.read()
 
+        sanitized_filename = Path(audio_file.filename).name
+
         repo = AudioRepository(self.session)
+
         return await repo.create(
             Audio(
-                filename=audio_file.filename,
+                filename=sanitized_filename,
                 content_type=mimetype,
                 data=audio_bytes,
             )
