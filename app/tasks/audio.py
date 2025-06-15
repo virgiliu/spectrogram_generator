@@ -28,19 +28,24 @@ async def _handle_audio_uploaded_async(audio_id: int) -> None:
         if audio is None:
             logger.warning(f"[WORKER] Audio with ID {audio_id} was not found")
             return
-        logger.info(f"[WORKER] Handling audio ID {audio.id}, filename {audio.filename}")
 
-        image_bytes = generate_spectrogram(audio.data, audio.filename)
+        # Store filename for later use in last log message.
+        # Session will be closed when that log happens and trying to access `audio.filename` will raise Exception.
+        filename = audio.filename
+
+        logger.info(f"[WORKER] Handling audio ID {audio_id}, filename {filename}")
+
+        image_bytes = generate_spectrogram(audio.data, filename)
 
         output_dir = Path.cwd() / "output"
         output_dir.mkdir(exist_ok=True)
 
-        img_path = output_dir / f"{Path(audio.filename)}_spectrogram.png"
+        img_path = output_dir / f"{Path(filename)}_spectrogram.png"
 
         with open(img_path, "wb") as f:
             f.write(image_bytes)
 
         await repo.mark_done(audio_id)
         logger.info(
-            f"[WORKER] Finished handling audio ID {audio.id}, filename {audio.filename}"
+            f"[WORKER] Finished handling audio ID {audio_id}, filename {filename}"
         )
