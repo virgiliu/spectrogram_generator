@@ -72,7 +72,7 @@ def test_valid_audio_upload(
 
     response = upload_fake_mp3()
 
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_202_ACCEPTED
     assert response.json() == UploadResponse(audio_id=test_audio_id).model_dump()
     mock_send_task.assert_called_once_with(
         AUDIO_UPLOADED, args=[UploadResponse(**response.json()).audio_id]

@@ -25,7 +25,9 @@ def health_check() -> HealthCheckResponse:
     return HealthCheckResponse(status="ok")
 
 
-@router.post("/upload", response_model=UploadResponse)
+@router.post(
+    "/upload", response_model=UploadResponse, status_code=status.HTTP_202_ACCEPTED
+)
 async def upload_audio(
     audio_file: Annotated[UploadFile, File(description="mp3 or wav file")],
     service: AudioUploadService = Depends(get_audio_upload_service),
