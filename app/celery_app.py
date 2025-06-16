@@ -1,4 +1,3 @@
-import asyncio
 from functools import lru_cache
 
 from celery import Celery
@@ -14,7 +13,7 @@ def _init_db(**_):
     Initialize the SQLAlchemy engine inside every Celery worker process.
     FastAPI runs its own db.init() at startup, this covers the worker side.
     """
-    asyncio.run(db.init(get_settings()))
+    db.init(get_settings())
 
 
 @lru_cache()

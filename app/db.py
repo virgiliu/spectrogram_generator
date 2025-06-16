@@ -3,7 +3,6 @@ from threading import Lock
 from typing import AsyncGenerator, AsyncIterator, Optional
 
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import Settings
@@ -12,24 +11,14 @@ _engine_lock = Lock()
 _engine: Optional[AsyncEngine] = None
 
 
-async def _create_engine(settings: Settings) -> AsyncEngine:
-    if settings is None:
-        raise ValueError("Settings cannot be None")
-
-    engine = create_async_engine(settings.database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    return engine
-
-
-async def init(settings: Settings) -> AsyncEngine:
+def init(settings: Settings) -> AsyncEngine:
     """Initialise and return the global database engine."""
 
     global _engine
     if _engine is None:
         with _engine_lock:
             if _engine is None:  # re-check, in case another thread set it already
-                _engine = await _create_engine(settings)
+                _engine = create_async_engine(settings.database_url, echo=False)
 
     return _engine
 

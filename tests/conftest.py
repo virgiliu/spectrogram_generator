@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 import pytest_asyncio
+from sqlmodel import SQLModel
 
 from app import db
 from app.config import Settings, get_settings
@@ -19,7 +20,16 @@ def setup_in_memory_db():
     # several tests are synchronous and then they would have to be executed in an event loop.
     # This way, nothing forces sync tests to be wrapped in `pytest.mark.asyncio`.
     asyncio.run(db.destroy_engine())
-    asyncio.run(db.init(test_settings))
+    db.init(test_settings)
+
+    # Create schema from models directly instead of relying on alembic.
+    engine = db.get_engine()
+
+    async def _create_tables():
+        async with engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.create_all)
+
+    asyncio.run(_create_tables())
 
     yield
 

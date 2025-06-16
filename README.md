@@ -20,6 +20,8 @@ Built to translate my Django experience to FastAPI.
 
 ```bash
 poetry install
+# run db migrations
+alembic upgrade head
 # dev server
 poetry run uvicorn app.main:app --reload
 # start Redis
@@ -44,3 +46,4 @@ poetry run pytest
 * Add endpoint that allows tracking of background task status
 * Return images as base64 instead of saving to disk
 * Graceful handling of corrupt audio files
+* Dockerize API and Celery workers
