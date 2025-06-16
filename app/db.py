@@ -18,7 +18,7 @@ def init(settings: Settings) -> AsyncEngine:
     if _engine is None:
         with _engine_lock:
             if _engine is None:  # re-check, in case another thread set it already
-                _engine = create_async_engine(settings.database_url, echo=False)
+                _engine = create_async_engine(settings.DATABASE_URL, echo=False)
 
     return _engine
 

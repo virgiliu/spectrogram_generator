@@ -12,7 +12,7 @@ from app.main import app
 
 @pytest.fixture(autouse=True, scope="function")
 def setup_in_memory_db():
-    test_settings = Settings(database_url="sqlite+aiosqlite:///:memory:")
+    test_settings = Settings(DATABASE_URL="sqlite+aiosqlite:///:memory:")
 
     app.dependency_overrides[get_settings] = lambda: test_settings
 

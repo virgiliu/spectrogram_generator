@@ -21,7 +21,7 @@ def _get_celery_app() -> Celery:
     settings = get_settings()
 
     _celery_app = Celery(
-        "tasks", broker=settings.celery_broker_url, backend=settings.celery_broker_url
+        "tasks", broker=settings.CELERY_BROKER_URL, backend=settings.CELERY_BROKER_URL
     )
 
     _celery_app.conf.task_acks_late = True
