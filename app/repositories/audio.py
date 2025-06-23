@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+from uuid import UUID
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -18,11 +19,11 @@ class AudioRepository:
         await self.session.refresh(audio)
         return audio
 
-    async def get_by_id(self, audio_id: int) -> Optional[Audio]:
+    async def get_by_id(self, audio_id: UUID) -> Optional[Audio]:
         result = await self.session.exec(select(Audio).where(Audio.id == audio_id))
         return result.first()
 
-    async def mark_done(self, audio_id: int) -> None:
+    async def mark_done(self, audio_id: UUID) -> None:
         audio = await self.get_by_id(audio_id)
         if audio:
             audio.status = AUDIO_STATUS_DONE

@@ -1,21 +1,23 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
+from uuid import UUID
 
 from fastapi import UploadFile
 from filetype import guess as guess_filetype
 from filetype.types.audio import Mp3, Wav
 from filetype.types.base import Type
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.exceptions import InvalidAudioFile
 from app.models.audio import Audio
 from app.repositories.audio import AudioRepository
 from app.services.constants import FILE_HEADER_READ_SIZE
+from app.services.s3_storage import S3StorageService
 
 
 class AudioUploadService:
-    def __init__(self, session: AsyncSession):
-        self.session = session
+    def __init__(self, audio_repo: AudioRepository, audio_store: S3StorageService):
+        self.audio_repo = audio_repo
+        self.audio_store = audio_store
 
     async def handle_upload(self, audio_file: UploadFile) -> Audio:
         if not audio_file.filename:
@@ -42,12 +44,13 @@ class AudioUploadService:
 
         sanitized_filename = Path(audio_file.filename).name
 
-        repo = AudioRepository(self.session)
-
-        return await repo.create(
+        audio = await self.audio_repo.create(
             Audio(
                 filename=sanitized_filename,
                 content_type=mimetype,
-                data=audio_bytes,
             )
         )
+
+        await self.audio_store.store(cast(UUID, audio.id), audio_bytes)
+
+        return audio

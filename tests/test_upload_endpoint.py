@@ -1,7 +1,9 @@
+import json
 import mimetypes
 from io import BytesIO
 from typing import Generator, Optional, Protocol
 from unittest.mock import AsyncMock, Mock, patch
+from uuid import uuid4
 
 import pytest
 from fastapi import status
@@ -67,13 +69,15 @@ def test_valid_audio_upload(
     mock_upload_service: Mock,
     upload_fake_mp3: UploadFakeMP3,
 ):
-    test_audio_id = 1337
+    test_audio_id = uuid4()
     mock_upload_service.handle_upload.return_value = Mock(id=test_audio_id)
 
     response = upload_fake_mp3()
 
     assert response.status_code == status.HTTP_202_ACCEPTED
-    assert response.json() == UploadResponse(audio_id=test_audio_id).model_dump()
+    assert response.json() == json.loads(
+        UploadResponse(audio_id=test_audio_id).model_dump_json()
+    )
     mock_send_task.assert_called_once_with(
         AUDIO_UPLOADED, args=[UploadResponse(**response.json()).audio_id]
     )
