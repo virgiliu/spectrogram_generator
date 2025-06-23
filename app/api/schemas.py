@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -6,4 +8,4 @@ class HealthCheckResponse(BaseModel):
 
 
 class UploadResponse(BaseModel):
-    audio_id: int
+    audio_id: UUID

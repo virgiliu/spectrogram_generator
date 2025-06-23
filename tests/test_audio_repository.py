@@ -1,5 +1,6 @@
 import mimetypes
 from datetime import datetime
+from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
@@ -27,10 +28,10 @@ async def created_audio(repo: AudioRepository) -> Audio:
     )
 
 
-def ensure_id(audio: Audio) -> int:
+def _ensure_id(audio: Audio) -> UUID:
     """Assert and return the id of an Audio instance.
 
-    The model defines ID as Optional[int] and mypy doesn't know that after INSERT an ID is assigned and it is no longer None.
+    The model defines ID as Optional[UUID] and mypy doesn't know that after INSERT an ID is assigned and it is no longer None.
 
     Use this to guarantee an int for type checking and to stop mypy from crying.
     """
@@ -56,7 +57,7 @@ async def test_create_adds_audio_and_assigns_id(
 
 @pytest.mark.asyncio
 async def test_get_by_id_returns_audio(repo: AudioRepository, created_audio: Audio):
-    fetched = await repo.get_by_id(ensure_id(created_audio))
+    fetched = await repo.get_by_id(_ensure_id(created_audio))
 
     assert fetched is not None
     assert fetched.model_dump() == created_audio.model_dump()  # type: ignore[union-attr]
@@ -64,14 +65,14 @@ async def test_get_by_id_returns_audio(repo: AudioRepository, created_audio: Aud
 
 @pytest.mark.asyncio
 async def test_get_by_id_returns_none_if_missing(repo: AudioRepository):
-    assert await repo.get_by_id(1) is None
+    assert await repo.get_by_id(uuid4()) is None
 
 
 @pytest.mark.asyncio
 async def test_mark_done_sets_status_to_done(
     repo: AudioRepository, created_audio: Audio
 ):
-    created_audio_id = ensure_id(created_audio)
+    created_audio_id = _ensure_id(created_audio)
 
     await repo.mark_done(created_audio_id)
 
@@ -82,14 +83,15 @@ async def test_mark_done_sets_status_to_done(
 
 @pytest.mark.asyncio
 async def test_mark_done_noop_if_missing(repo: AudioRepository):
-    await repo.mark_done(1)
+    uuid = uuid4()
+    await repo.mark_done(uuid)
 
-    assert await repo.get_by_id(1) is None
+    assert await repo.get_by_id(uuid) is None
 
 
 @pytest.mark.asyncio
 async def test_mark_done_idempotent(repo: AudioRepository, created_audio: Audio):
-    created_audio_id = ensure_id(created_audio)
+    created_audio_id = _ensure_id(created_audio)
 
     await repo.mark_done(created_audio_id)
     # Call 2nd time intentionally to test for side effects that might break idempotency

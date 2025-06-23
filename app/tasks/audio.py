@@ -1,8 +1,11 @@
 import asyncio
 import logging
-from pathlib import Path
+from mimetypes import types_map
+from uuid import UUID
 
-from app.celery_app import celery_app
+from botocore.exceptions import ClientError
+
+from app.celery_app import celery_app, get_audio_store, get_spectrogram_store
 from app.db import scoped_session
 from app.events import AUDIO_UPLOADED
 from app.repositories.audio import AudioRepository
@@ -17,14 +20,15 @@ logger = logging.getLogger(__name__)
     retry_backoff=True,
     max_retries=5,
 )
-def handle_audio_uploaded(audio_id: int) -> None:
-    asyncio.run(_handle_audio_uploaded_async(audio_id))
+def handle_audio_uploaded(audio_id: UUID) -> None:
+    asyncio.get_event_loop().run_until_complete(_handle_audio_uploaded_async(audio_id))
 
 
-async def _handle_audio_uploaded_async(audio_id: int) -> None:
+async def _handle_audio_uploaded_async(audio_id: UUID) -> None:
     async with scoped_session() as session:
         repo = AudioRepository(session)
         audio = await repo.get_by_id(audio_id)
+
         if audio is None:
             logger.warning(f"[WORKER] Audio with ID {audio_id} was not found")
             return
@@ -35,17 +39,21 @@ async def _handle_audio_uploaded_async(audio_id: int) -> None:
 
         logger.info(f"[WORKER] Handling audio ID {audio_id}, filename {filename}")
 
-        image_bytes = generate_spectrogram(audio.data, filename)
+        try:
+            audio_bytes = await get_audio_store().retrieve(audio_id)
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] == "NoSuchKey":
+                logger.fatal(
+                    f"[WORKER] Audio with ID {audio_id} was not found in store but worker got a task to process it"
+                )
+            raise
 
-        output_dir = Path.cwd() / "output"
-        output_dir.mkdir(exist_ok=True)
+        image_bytes = generate_spectrogram(audio_bytes, filename)
 
-        img_path = output_dir / f"{Path(filename)}_spectrogram.png"
-
-        with open(img_path, "wb") as f:
-            f.write(image_bytes)
+        await get_spectrogram_store().store(audio_id, image_bytes, types_map[".png"])
 
         await repo.mark_done(audio_id)
+
         logger.info(
             f"[WORKER] Finished handling audio ID {audio_id}, filename {filename}"
         )

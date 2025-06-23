@@ -22,9 +22,15 @@ def mock_repo() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def service() -> AudioUploadService:
-    session_factory = MagicMock()
-    return AudioUploadService(session_factory)
+def mock_audio_store() -> MagicMock:
+    store = MagicMock()
+    store.store = AsyncMock()
+    return store
+
+
+@pytest.fixture
+def service(mock_repo, mock_audio_store) -> AudioUploadService:
+    return AudioUploadService(mock_repo, mock_audio_store)
 
 
 def make_fake_audio_bytes(header: bytes) -> bytes:

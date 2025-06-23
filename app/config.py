@@ -12,7 +12,12 @@ class Settings(BaseSettings):
     )
 
     DATABASE_URL: str
+
     CELERY_BROKER_URL: str
+
+    S3_ENDPOINT: str
+    S3_ID: str
+    S3_SECRET: str
 
 
 @lru_cache()
